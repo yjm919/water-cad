@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>X6 拖拽建模 → 导入/导出 INP（选中高亮修复）</title>
-    <script type="module" crossorigin src="./assets/index-D4piTOwL.js"></script>
+    <script type="module" crossorigin src="./assets/index-CGi21Ozn.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-C99Bc8Co.css">
   </head>
   <body>
@@ -18,7 +18,6 @@
       <button class="btn" id="zoomOutBtn">－</button>
       <span id="zoomLabel" style="font-size:12px;min-width:40px;text-align:center">100%</span>
       <span class="sep"></span>
-      <button class="btn" id="angleDrawBtn" title="角度+长度精确画管">📐 角度画管</button>
       <button class="btn" id="freeDrawBtn" title="自由画管 — 点击画布依次放置节点，Esc 结束">✏️ 自由画管</button>
       <button class="btn" id="pipeOnlyBtn" title="只画管路 — 每次点击自动放置弯头并连管, Esc 结束">🪠 只画管路</button>
       <span id="fd-options" style="display:none;gap:6px;align-items:center">
@@ -127,33 +126,6 @@
           <textarea id="ops-guide-text" placeholder="在这里记录各种操作规程 / 快捷键 / 工作流程…&#10;内容将自动保存到浏览器, 刷新后仍然可见。"></textarea>
         </div>
       </aside>
-    </div>
-
-    <!-- 角度画管输入面板 -->
-    <div id="angle-input-panel">
-      <div style="font-weight:700;margin-bottom:8px;color:#1e40af">📐 下一段管线</div>
-      <div style="font-size:12px;color:#6b7280;margin-bottom:8px">起点：<span id="ai-current-id" style="color:#374151;font-weight:600">-</span></div>
-      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;margin-bottom:8px">
-        管路类型
-        <select id="ai-pipe-type" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
-          <option value="normal">普通</option>
-          <option value="supply">供水管 🔴</option>
-          <option value="return">回水管 🔵</option>
-        </select>
-      </label>
-      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;margin-bottom:8px">
-        方向角 (°)
-        <div style="font-size:11px;color:#9ca3af">0=右 · 90=上 · 180=左 · 270=下</div>
-        <input id="ai-angle" type="number" value="0" step="5" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px"/>
-      </label>
-      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;margin-bottom:10px">
-        长度 (m)
-        <input id="ai-length" type="number" value="100" step="10" min="1" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px"/>
-      </label>
-      <div style="display:flex;gap:6px">
-        <button id="ai-confirm" style="flex:1;padding:6px;border:none;border-radius:6px;background:#5F95FF;color:#fff;cursor:pointer;font-weight:600">确认 →</button>
-        <button id="ai-finish" style="flex:1;padding:6px;border:none;border-radius:6px;background:#6b7280;color:#fff;cursor:pointer">完成 ✓</button>
-      </div>
     </div>
 
     <!-- 管线插入分支弹窗 -->
