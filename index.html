@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>X6 拖拽建模 → 导入/导出 INP（选中高亮修复）</title>
+    <script type="module" crossorigin src="./assets/index-D4piTOwL.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-C99Bc8Co.css">
+  </head>
+  <body>
+    <header class="toolbar">
+      <button class="danger-btn" id="deleteSelected">🗑 删除选中</button>
+      <span class="sep"></span>
+      <button class="btn" id="fitBtn" title="居中显示">⊙ 居中</button>
+      <button class="btn" id="toggleLabelBtn" title="隐藏/显示标注">□ 隐标注</button>
+      <span class="sep"></span>
+      <button class="btn" id="zoomInBtn">＋</button>
+      <button class="btn" id="zoomOutBtn">－</button>
+      <span id="zoomLabel" style="font-size:12px;min-width:40px;text-align:center">100%</span>
+      <span class="sep"></span>
+      <button class="btn" id="angleDrawBtn" title="角度+长度精确画管">📐 角度画管</button>
+      <button class="btn" id="freeDrawBtn" title="自由画管 — 点击画布依次放置节点，Esc 结束">✏️ 自由画管</button>
+      <button class="btn" id="pipeOnlyBtn" title="只画管路 — 每次点击自动放置弯头并连管, Esc 结束">🪠 只画管路</button>
+      <span id="fd-options" style="display:none;gap:6px;align-items:center">
+        <span style="font-size:12px;color:#6b7280">节点:</span>
+        <select id="fdNodeType" style="padding:3px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px">
+          <option value="WT">弯头</option>
+          <option value="ST">三通</option>
+          <option value="J">换热站</option>
+          <option value="T">中断站</option>
+          <option value="R">热源</option>
+        </select>
+        <span style="font-size:12px;color:#6b7280">管径:</span>
+        <input id="fdDiameter" type="number" value="300" step="10" min="10" style="width:62px;padding:3px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px"/>
+        <span style="font-size:12px;color:#6b7280">mm</span>
+      </span>
+      <span class="sep"></span>
+      <span style="font-size:12px;color:#6b7280">拖拽左侧节点到画布 | 点击节点/管线编辑属性</span>
+      <span class="grow"></span>
+      <input type="file" id="inpFileTop" accept=".inp,text/plain" style="display:none" />
+    </header>
+
+    <div class="workspace">
+      <aside id="palette">
+        <div class="sidebar-section-title">节点工具</div>
+
+        <div class="palette-item" data-type="J" title="换热站 — 拖拽到画布">
+          <span class="pi-icon pi-J"></span><span class="pi-label">换热站</span>
+        </div>
+        <div class="palette-item" data-type="R" title="热源 — 拖拽到画布">
+          <span class="pi-icon pi-R"></span><span class="pi-label">热源</span>
+        </div>
+        <div class="palette-item" data-type="T" title="中断站 — 拖拽到画布">
+          <span class="pi-icon pi-T"></span><span class="pi-label">中断站</span>
+        </div>
+        <div class="palette-item" data-type="ST" title="三通 — 拖拽到画布">
+          <span class="pi-icon pi-ST"></span><span class="pi-label">三通</span>
+        </div>
+
+        <div class="sidebar-section-title">连线工具</div>
+        <div class="edge-tool" data-edge-type="pipe-single" title="单线管">
+          <span class="et-icon et-pipe-single"></span><span class="pi-label">单线管</span>
+        </div>
+        <div class="edge-tool" data-edge-type="pipe-double" title="双线管">
+          <span class="et-icon et-pipe-double"></span><span class="pi-label">双线管</span>
+        </div>
+        <div class="edge-tool" data-edge-type="valve" title="阀门">
+          <span class="et-icon et-valve"></span><span class="pi-label">阀门 (PRV)</span>
+        </div>
+        <div class="edge-tool" data-edge-type="pump" title="水泵">
+          <span class="et-icon et-pump"></span><span class="pi-label">水泵 (POWER)</span>
+        </div>
+
+        <div class="sidebar-section-title">文件操作</div>
+        <button class="sidebar-btn btn-blue" id="importBtn">📂 导入 INP</button>
+        <input type="file" id="inpFile" accept=".inp,text/plain" style="display:none" />
+        <button class="sidebar-btn btn-green" id="export">💾 导出 INP</button>
+        <button class="sidebar-btn btn-red" id="clearAll">🗑 清空</button>
+
+        <div class="sidebar-section-title">管路工具</div>
+        <button class="sidebar-btn btn-blue" id="genReturnBtn">↩ 异程回水 (reverse)</button>
+        <button class="sidebar-btn btn-blue" id="genSameReturnBtn">⟲ 同程回水 (constant-length)</button>
+        <button class="sidebar-btn btn-blue" id="checkLoopBtn">🔍 拓扑检查</button>
+        <div class="panel-help" style="font-size:11px;color:#6b7280;margin-top:2px;line-height:1.4">
+          • 双击管线可添加折点<br/>
+          • 选中供水管后点击生成回水
+        </div>
+
+        <div class="sidebar-section-title">WNTR 仿真</div>
+        <div class="panel">
+          <label>Duration (s)<input id="wntrDuration" type="number" value="86400" /></label>
+          <label>Timestep (s)<input id="wntrTimestep" type="number" value="3600" /></label>
+          <div class="panel-title" style="margin-top:8px;font-size:12px">需求模式（24小时）</div>
+          <div id="demandPatternTable" class="demand-table"></div>
+          <label style="margin-top:6px">初始氯浓度 (mg/L)<input id="wntrCl" type="number" value="0.5" step="0.1" /></label>
+          <button class="sidebar-btn btn-blue" id="runWntr" style="margin-top:8px">▶ 运行 WNTR 仿真</button>
+        </div>
+
+        <div class="sidebar-section-title">Pattern 需求模式</div>
+        <div class="panel">
+          <textarea id="patternText" placeholder="1,1.2,0.9,0.8,1.1"></textarea>
+          <label>ID <input id="patternId" value="PAT1" /></label>
+          <button class="sidebar-btn btn-blue" id="applyPattern" style="margin-top:6px">设置/更新</button>
+        </div>
+
+        <div class="sidebar-section-title">全局设置</div>
+        <div class="panel">
+          <label>标尺 (px/米)<input id="scalePxPerM" type="number" value="1" step="0.1" /></label>
+          <div class="panel-help">导出管段 Length = 像素 ÷ 标尺</div>
+        </div>
+      </aside>
+
+      <div id="sidebar-resize-handle"></div>
+      <main id="container"></main>
+      <div id="canvas-hint">拖拽左侧节点到这里</div>
+
+      <aside id="props-panel">
+        <div class="panel-title">属性编辑</div>
+        <div id="props-content">
+          <div class="props-empty">未选中任何元素<br/><small>点击画布中的节点或管线</small></div>
+        </div>
+        <div id="ops-guide">
+          <div class="ops-guide-header">
+            <span class="panel-title" style="margin:0">📖 操作指南</span>
+            <span id="ops-guide-status" style="font-size:11px;color:#9ca3af">已保存</span>
+          </div>
+          <textarea id="ops-guide-text" placeholder="在这里记录各种操作规程 / 快捷键 / 工作流程…&#10;内容将自动保存到浏览器, 刷新后仍然可见。"></textarea>
+        </div>
+      </aside>
+    </div>
+
+    <!-- 角度画管输入面板 -->
+    <div id="angle-input-panel">
+      <div style="font-weight:700;margin-bottom:8px;color:#1e40af">📐 下一段管线</div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:8px">起点：<span id="ai-current-id" style="color:#374151;font-weight:600">-</span></div>
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;margin-bottom:8px">
+        管路类型
+        <select id="ai-pipe-type" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
+          <option value="normal">普通</option>
+          <option value="supply">供水管 🔴</option>
+          <option value="return">回水管 🔵</option>
+        </select>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;margin-bottom:8px">
+        方向角 (°)
+        <div style="font-size:11px;color:#9ca3af">0=右 · 90=上 · 180=左 · 270=下</div>
+        <input id="ai-angle" type="number" value="0" step="5" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px"/>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;margin-bottom:10px">
+        长度 (m)
+        <input id="ai-length" type="number" value="100" step="10" min="1" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px"/>
+      </label>
+      <div style="display:flex;gap:6px">
+        <button id="ai-confirm" style="flex:1;padding:6px;border:none;border-radius:6px;background:#5F95FF;color:#fff;cursor:pointer;font-weight:600">确认 →</button>
+        <button id="ai-finish" style="flex:1;padding:6px;border:none;border-radius:6px;background:#6b7280;color:#fff;cursor:pointer">完成 ✓</button>
+      </div>
+    </div>
+
+    <!-- 管线插入分支弹窗 -->
+    <div id="branch-input-panel" style="display:none;position:fixed;z-index:2000;background:#fff;border:2px solid #7c3aed;border-radius:10px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.18);min-width:240px">
+      <div style="font-weight:700;margin-bottom:8px;color:#6b21a8">🔧 在此插入设备 / 分支</div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:8px">原管线：<span id="bi-src-edge" style="color:#374151;font-weight:600">-</span></div>
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;margin-bottom:8px">
+        插入设备
+        <select id="bi-node-type" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
+          <optgroup label="节点（分支点）">
+            <option value="WT">弯头</option>
+            <option value="ST">三通</option>
+            <option value="J">换热站</option>
+            <option value="T">中断站</option>
+            <option value="R">热源</option>
+          </optgroup>
+          <optgroup label="串联设备（管道中）">
+            <option value="VALVE">阀门 (PRV)</option>
+            <option value="PUMP">水泵 (POWER)</option>
+          </optgroup>
+        </select>
+      </label>
+      <div style="font-weight:600;font-size:12px;color:#6b21a8;margin:10px 0 4px">新分支（可选）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+        <label style="display:flex;flex-direction:column;gap:3px">方向角°
+          <input id="bi-angle" type="number" value="90" step="5" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px"/>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:3px">长度 m
+          <input id="bi-length" type="number" value="50" step="10" min="1" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px"/>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:3px">管径 mm
+          <input id="bi-diameter" type="number" value="200" step="10" min="10" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px"/>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:3px">粗糙 C
+          <input id="bi-c" type="number" value="100" step="5" min="50" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px"/>
+        </label>
+      </div>
+      <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;margin-top:8px">管路类型
+        <select id="bi-pipe-type" style="padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px">
+          <option value="normal">普通</option>
+          <option value="supply">供水管 🔴</option>
+          <option value="return">回水管 🔵</option>
+        </select>
+      </label>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button id="bi-insert-only" style="flex:1;padding:6px;border:none;border-radius:6px;background:#9ca3af;color:#fff;cursor:pointer;font-size:12px">仅插入设备</button>
+        <button id="bi-insert-branch" style="flex:1;padding:6px;border:none;border-radius:6px;background:#7c3aed;color:#fff;cursor:pointer;font-weight:600;font-size:12px">插入+分支</button>
+        <button id="bi-cancel" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;cursor:pointer;font-size:12px">取消</button>
+      </div>
+    </div>
+
+    <!-- 仿真结果浮层 -->
+    <div id="sim-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;overflow:auto">
+      <div style="background:#fff;margin:40px auto;max-width:900px;border-radius:8px;padding:24px;position:relative">
+        <button id="sim-close" style="position:absolute;top:12px;right:16px;font-size:18px;background:none;border:none;cursor:pointer">✕</button>
+        <h3 style="margin:0 0 16px">仿真结果</h3>
+        <div style="display:flex;gap:24px;flex-wrap:wrap">
+          <div style="flex:1;min-width:300px">
+            <div style="font-weight:600;margin-bottom:8px">节点压力 (m)</div>
+            <canvas id="chart-pressure" height="320"></canvas>
+          </div>
+          <div style="flex:1;min-width:300px">
+            <div style="font-weight:600;margin-bottom:8px">管段流速 (m/s)</div>
+            <canvas id="chart-velocity" height="320"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>
